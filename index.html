@@ -210,6 +210,8 @@
         <p>🎮 WASD or Arrow Keys - Drive</p>
         <p>🚗 Space - Brake</p>
         <p>📍 Drive into portals to collect links!</p>
+        <p>⚡ Drive over cyan pads for speed boost!</p>
+        <p>✅ Press Enter near portal to activate it!</p>
     </div>
 
     <div id="linkPanel">
@@ -237,8 +239,8 @@
 
         // Scene Setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a1a);
-        scene.fog = new THREE.Fog(0x0a0a1a, 50, 500);
+        scene.background = new THREE.Color(0x1a1a3a);
+        scene.fog = new THREE.Fog(0x1a1a3a, 50, 500);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -248,10 +250,10 @@
         document.body.appendChild(renderer.domElement);
 
         // Lighting - Moonlight
-        const ambientLight = new THREE.AmbientLight(0x4466ff, 0.2);
+        const ambientLight = new THREE.AmbientLight(0x6688ff, 0.4);
         scene.add(ambientLight);
 
-        const moonLight = new THREE.DirectionalLight(0x8899ff, 0.5);
+        const moonLight = new THREE.DirectionalLight(0xaabbff, 0.8);
         moonLight.position.set(50, 80, 30);
         moonLight.castShadow = true;
         moonLight.shadow.mapSize.width = 2048;
@@ -261,6 +263,17 @@
         moonLight.shadow.camera.top = 100;
         moonLight.shadow.camera.bottom = -100;
         scene.add(moonLight);
+
+        // Add a visible moon
+        const moonGeometry = new THREE.SphereGeometry(10, 32, 32);
+        const moonMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffee,
+            emissive: 0xffffee,
+            emissiveIntensity: 1
+        });
+        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+        moon.position.set(200, 150, 100);
+        scene.add(moon);
 
         // Stars
         const starsGeometry = new THREE.BufferGeometry();
@@ -345,19 +358,34 @@
         scene.add(car);
 
         // Add headlights
-        const headlight1 = new THREE.SpotLight(0xffffaa, 1, 50, Math.PI / 6, 0.5);
+        const headlight1 = new THREE.SpotLight(0xffffee, 2.5, 80, Math.PI / 5, 0.3);
         headlight1.position.set(-0.7, 1.2, 2);
-        headlight1.target.position.set(-0.7, 0, 10);
+        headlight1.target.position.set(-0.7, 0, 15);
         scene.add(headlight1.target);
         headlight1.castShadow = true;
         car.add(headlight1);
 
-        const headlight2 = new THREE.SpotLight(0xffffaa, 1, 50, Math.PI / 6, 0.5);
+        const headlight2 = new THREE.SpotLight(0xffffee, 2.5, 80, Math.PI / 5, 0.3);
         headlight2.position.set(0.7, 1.2, 2);
-        headlight2.target.position.set(0.7, 0, 10);
+        headlight2.target.position.set(0.7, 0, 15);
         scene.add(headlight2.target);
         headlight2.castShadow = true;
         car.add(headlight2);
+
+        // Add headlight glow meshes
+        const headlightGlowGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const headlightGlowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffaa,
+            emissive: 0xffffaa,
+            emissiveIntensity: 1
+        });
+        const headlightGlow1 = new THREE.Mesh(headlightGlowGeometry, headlightGlowMaterial);
+        headlightGlow1.position.set(-0.7, 1.2, 2);
+        car.add(headlightGlow1);
+
+        const headlightGlow2 = new THREE.Mesh(headlightGlowGeometry, headlightGlowMaterial);
+        headlightGlow2.position.set(0.7, 1.2, 2);
+        car.add(headlightGlow2);
 
         // Obstacles
         const obstacles = [];
@@ -483,6 +511,137 @@
         // Add a couple ramps
         createRamp(50, 20);
         createRamp(-40, -30);
+
+        // Create Racetrack
+        function createRacetrackSegment(x1, z1, x2, z2, width) {
+            const length = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
+            const angle = Math.atan2(x2 - x1, z2 - z1);
+
+            // Track surface
+            const trackGeometry = new THREE.PlaneGeometry(width, length);
+            const trackMaterial = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                roughness: 0.7,
+                metalness: 0.2
+            });
+            const track = new THREE.Mesh(trackGeometry, trackMaterial);
+            track.rotation.x = -Math.PI / 2;
+            track.rotation.z = -angle;
+            track.position.set((x1 + x2) / 2, 0.05, (z1 + z2) / 2);
+            track.receiveShadow = true;
+            scene.add(track);
+
+            // Center line
+            const lineGeometry = new THREE.PlaneGeometry(0.3, length);
+            const lineMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 0.3
+            });
+            const line = new THREE.Mesh(lineGeometry, lineMaterial);
+            line.rotation.x = -Math.PI / 2;
+            line.rotation.z = -angle;
+            line.position.set((x1 + x2) / 2, 0.1, (z1 + z2) / 2);
+            scene.add(line);
+
+            // Edge markers
+            for (let i = 0; i <= length; i += 5) {
+                const t = i / length;
+                const x = x1 + (x2 - x1) * t;
+                const z = z1 + (z2 - z1) * t;
+
+                const markerGeometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+                const markerMaterial = new THREE.MeshStandardMaterial({
+                    color: i % 10 === 0 ? 0xff0000 : 0xffffff,
+                    emissive: i % 10 === 0 ? 0xff0000 : 0xffffff,
+                    emissiveIntensity: 0.5
+                });
+                const marker1 = new THREE.Mesh(markerGeometry, markerMaterial);
+                marker1.position.set(
+                    x + Math.cos(angle) * width / 2,
+                    0.5,
+                    z - Math.sin(angle) * width / 2
+                );
+                scene.add(marker1);
+
+                const marker2 = new THREE.Mesh(markerGeometry, markerMaterial);
+                marker2.position.set(
+                    x - Math.cos(angle) * width / 2,
+                    0.5,
+                    z + Math.sin(angle) * width / 2
+                );
+                scene.add(marker2);
+            }
+        }
+
+        // Build a circular racetrack
+        const trackRadius = 80;
+        const trackSegments = 16;
+        const trackWidth = 12;
+
+        for (let i = 0; i < trackSegments; i++) {
+            const angle1 = (i / trackSegments) * Math.PI * 2;
+            const angle2 = ((i + 1) / trackSegments) * Math.PI * 2;
+
+            const x1 = Math.cos(angle1) * trackRadius;
+            const z1 = Math.sin(angle1) * trackRadius;
+            const x2 = Math.cos(angle2) * trackRadius;
+            const z2 = Math.sin(angle2) * trackRadius;
+
+            createRacetrackSegment(x1, z1, x2, z2, trackWidth);
+        }
+
+        // Speed Boosters
+        const boosters = [];
+
+        function createBooster(x, z) {
+            const boosterGroup = new THREE.Group();
+
+            // Base pad
+            const padGeometry = new THREE.BoxGeometry(6, 0.2, 8);
+            const padMaterial = new THREE.MeshStandardMaterial({
+                color: 0x00ffff,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.8,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const pad = new THREE.Mesh(padGeometry, padMaterial);
+            pad.position.y = 0.1;
+            boosterGroup.add(pad);
+
+            // Arrow markers
+            for (let i = 0; i < 3; i++) {
+                const arrowGeometry = new THREE.ConeGeometry(0.8, 1.5, 3);
+                const arrowMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffff00,
+                    emissive: 0xffff00,
+                    emissiveIntensity: 1
+                });
+                const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                arrow.rotation.x = Math.PI / 2;
+                arrow.position.set(0, 0.5 + i * 0.3, -2 + i * 1.5);
+                boosterGroup.add(arrow);
+            }
+
+            boosterGroup.position.set(x, 0, z);
+            scene.add(boosterGroup);
+
+            boosters.push({
+                object: boosterGroup,
+                position: new THREE.Vector3(x, 0, z),
+                radius: 4,
+                active: true
+            });
+
+            return boosterGroup;
+        }
+
+        // Place boosters around the track
+        createBooster(trackRadius, 0);
+        createBooster(-trackRadius, 0);
+        createBooster(0, trackRadius);
+        createBooster(0, -trackRadius);
 
         // Car Physics
         let velocity = new THREE.Vector3(0, 0, 0);
@@ -722,6 +881,86 @@
             });
         }
 
+        function checkBoosterCollisions() {
+            const carPosition = new THREE.Vector3();
+            car.getWorldPosition(carPosition);
+
+            boosters.forEach(booster => {
+                if (!booster.active) return;
+
+                const distance = carPosition.distanceTo(booster.position);
+
+                if (distance < booster.radius) {
+                    // Boost speed!
+                    const boostDirection = new THREE.Vector3(0, 0, -1);
+                    boostDirection.applyQuaternion(car.quaternion);
+                    velocity.add(boostDirection.multiplyScalar(0.3));
+
+                    gameState.score += 50;
+                    showNotification('⚡ SPEED BOOST!', '#00ffff');
+
+                    // Temporarily deactivate booster
+                    booster.active = false;
+                    booster.object.children[0].material.emissiveIntensity = 0.2;
+
+                    setTimeout(() => {
+                        booster.active = true;
+                        booster.object.children[0].material.emissiveIntensity = 0.8;
+                    }, 3000);
+                }
+            });
+        }
+
+        // Find nearest portal for Enter key activation
+        function getNearestPortal() {
+            const carPosition = new THREE.Vector3();
+            car.getWorldPosition(carPosition);
+
+            let nearest = null;
+            let nearestDistance = Infinity;
+
+            portals.forEach(portal => {
+                if (portal.userData.collected) return;
+
+                const portalPosition = new THREE.Vector3();
+                portal.getWorldPosition(portalPosition);
+                const distance = carPosition.distanceTo(portalPosition);
+
+                if (distance < 5 && distance < nearestDistance) {
+                    nearest = portal;
+                    nearestDistance = distance;
+                }
+            });
+
+            return nearest;
+        }
+
+        // Handle Enter key to activate nearby portal
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const nearestPortal = getNearestPortal();
+                if (nearestPortal && !nearestPortal.userData.collected) {
+                    // Activate the portal
+                    nearestPortal.userData.collected = true;
+                    nearestPortal.userData.linkData.collected = true;
+
+                    gameState.score += 100;
+                    gameState.linksCollected++;
+
+                    showNotification(`🎉 Activated: ${nearestPortal.userData.linkData.title}!`, '#ffd700');
+
+                    // Visual feedback
+                    nearestPortal.userData.ring.material.color.setHex(0xffd700);
+                    nearestPortal.userData.ring.material.emissive.setHex(0xffd700);
+
+                    updateLinksList();
+
+                    // Open link in new tab
+                    window.open(nearestPortal.userData.linkData.url, '_blank');
+                }
+            }
+        });
+
         // Camera Follow
         function updateCamera() {
             const cameraOffset = new THREE.Vector3(0, 8, 12);
@@ -767,6 +1006,19 @@
                     minimapCtx.fillStyle = '#666666';
                     minimapCtx.beginPath();
                     minimapCtx.arc(x, y, 3, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
+            });
+
+            // Draw boosters
+            boosters.forEach(booster => {
+                const x = centerX + (booster.position.x - car.position.x) * scale;
+                const y = centerY + (booster.position.z - car.position.z) * scale;
+
+                if (x > 0 && x < 200 && y > 0 && y < 200) {
+                    minimapCtx.fillStyle = booster.active ? '#00ffff' : '#006666';
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(x, y, 4, 0, Math.PI * 2);
                     minimapCtx.fill();
                 }
             });
@@ -872,6 +1124,7 @@
             // Check collisions
             checkPortalCollisions();
             checkObstacleCollisions();
+            checkBoosterCollisions();
 
             // Update camera
             updateCamera();
