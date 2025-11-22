@@ -612,6 +612,8 @@
             const segments = lampConfig.segments;
             const height = lampConfig.height;
             const radius = lampConfig.radius;
+            const topRadius = lampConfig.shape === 'dome' ? radius * 0.3 : radius;
+            const bottomRadius = radius;
 
             // Frame material
             const frameMat = frameMaterials[lampConfig.frameMaterial];
@@ -651,8 +653,6 @@
 
                 // Create glass panel
                 const panelShape = new THREE.Shape();
-                const topRadius = lampConfig.shape === 'dome' ? radius * 0.3 : radius;
-                const bottomRadius = radius;
 
                 const x1 = Math.cos(angle1) * bottomRadius;
                 const z1 = Math.sin(angle1) * bottomRadius;
@@ -671,7 +671,6 @@
                     roughness: 0.1,
                     metalness: 0,
                     transmission: lampConfig.translucency,
-                    thickness: 0.5,
                     envMapIntensity: 1,
                     clearcoat: 0.5,
                     clearcoatRoughness: 0.1
