@@ -260,6 +260,10 @@
                 <button class="preset-btn" onclick="loadPreset('victorian')">Victorian</button>
                 <button class="preset-btn" onclick="loadPreset('modern')">Modern Geometric</button>
                 <button class="preset-btn" onclick="loadPreset('artdeco')">Art Deco</button>
+                <button class="preset-btn" onclick="loadPreset('prairie')">Prairie School</button>
+                <button class="preset-btn" onclick="loadPreset('mediterranean')">Mediterranean</button>
+                <button class="preset-btn" onclick="loadPreset('gothic')">Gothic Cathedral</button>
+                <button class="preset-btn" onclick="loadPreset('mission')">Mission Style</button>
             </div>
         </div>
 
@@ -663,17 +667,20 @@
                 const x4 = Math.cos(angle1) * topRadius;
                 const z4 = Math.sin(angle1) * topRadius;
 
-                // Create glass material
+                // Create glass material with enhanced realism
                 const glassMaterial = new THREE.MeshPhysicalMaterial({
                     color: colors[colorIndex],
                     transparent: true,
                     opacity: lampConfig.opacity,
-                    roughness: 0.1,
+                    roughness: 0.05,
                     metalness: 0,
                     transmission: lampConfig.translucency,
-                    envMapIntensity: 1,
-                    clearcoat: 0.5,
-                    clearcoatRoughness: 0.1
+                    envMapIntensity: 1.5,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.05,
+                    ior: 1.5,
+                    reflectivity: 0.9,
+                    side: THREE.DoubleSide
                 });
 
                 // Create panel geometry
@@ -691,25 +698,12 @@
                 lamp.add(panel);
                 glassSegments.push(panel);
 
-                // Create frame edges
+                // Create frame material for rings
                 const edgeMaterial = new THREE.MeshStandardMaterial({
                     color: frameMat.color,
                     roughness: frameMat.roughness,
                     metalness: frameMat.metalness
                 });
-
-                // Vertical edges
-                const edgeGeometry = new THREE.CylinderGeometry(
-                    lampConfig.frameThickness,
-                    lampConfig.frameThickness,
-                    height,
-                    8
-                );
-
-                const edge1 = new THREE.Mesh(edgeGeometry, edgeMaterial);
-                edge1.position.set(x1, 3 + height / 2, z1);
-                edge1.castShadow = true;
-                lamp.add(edge1);
 
                 // Top and bottom rings
                 if (i === 0) {
@@ -832,6 +826,7 @@
                     lampConfig.accentColor = 0xffe66d;
                     lampConfig.pattern = 'alternating';
                     lampConfig.frameMaterial = 'bronze';
+                    lampConfig.segments = 12;
                     break;
                 case 'victorian':
                     lampConfig.shape = 'dome';
@@ -840,6 +835,7 @@
                     lampConfig.accentColor = 0xffd700;
                     lampConfig.pattern = 'gradient';
                     lampConfig.frameMaterial = 'brass';
+                    lampConfig.segments = 16;
                     break;
                 case 'modern':
                     lampConfig.shape = 'cylinder';
@@ -848,6 +844,7 @@
                     lampConfig.accentColor = 0xf39c12;
                     lampConfig.pattern = 'striped';
                     lampConfig.frameMaterial = 'black';
+                    lampConfig.segments = 8;
                     break;
                 case 'artdeco':
                     lampConfig.shape = 'cone';
@@ -856,6 +853,48 @@
                     lampConfig.accentColor = 0xf1c40f;
                     lampConfig.pattern = 'checker';
                     lampConfig.frameMaterial = 'silver';
+                    lampConfig.segments = 12;
+                    break;
+                case 'prairie':
+                    lampConfig.shape = 'square';
+                    lampConfig.primaryColor = 0xd4a574;
+                    lampConfig.secondaryColor = 0x8fbc8f;
+                    lampConfig.accentColor = 0xdaa520;
+                    lampConfig.pattern = 'striped';
+                    lampConfig.frameMaterial = 'brass';
+                    lampConfig.segments = 4;
+                    lampConfig.opacity = 0.7;
+                    break;
+                case 'mediterranean':
+                    lampConfig.shape = 'dome';
+                    lampConfig.primaryColor = 0x1e90ff;
+                    lampConfig.secondaryColor = 0xffd700;
+                    lampConfig.accentColor = 0xffffff;
+                    lampConfig.pattern = 'spiral';
+                    lampConfig.frameMaterial = 'gold';
+                    lampConfig.segments = 20;
+                    lampConfig.opacity = 0.8;
+                    break;
+                case 'gothic':
+                    lampConfig.shape = 'hexagon';
+                    lampConfig.primaryColor = 0x4b0082;
+                    lampConfig.secondaryColor = 0x8b0000;
+                    lampConfig.accentColor = 0x191970;
+                    lampConfig.pattern = 'alternating';
+                    lampConfig.frameMaterial = 'black';
+                    lampConfig.segments = 6;
+                    lampConfig.opacity = 0.75;
+                    lampConfig.translucency = 0.3;
+                    break;
+                case 'mission':
+                    lampConfig.shape = 'octagon';
+                    lampConfig.primaryColor = 0xcd853f;
+                    lampConfig.secondaryColor = 0x8b4513;
+                    lampConfig.accentColor = 0xdeb887;
+                    lampConfig.pattern = 'gradient';
+                    lampConfig.frameMaterial = 'bronze';
+                    lampConfig.segments = 8;
+                    lampConfig.opacity = 0.65;
                     break;
             }
             updateUIFromConfig();
