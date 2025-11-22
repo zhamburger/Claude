@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stained Glass Lamp Designer - Professional Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: 95vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        #ui-panel h1 {
+            font-size: 24px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #e67e22;
+            padding-bottom: 10px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h3 {
+            font-size: 16px;
+            color: #34495e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        select, input[type="range"], input[type="number"], input[type="color"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            background: white;
+        }
+
+        input[type="range"] {
+            cursor: pointer;
+        }
+
+        input[type="color"] {
+            height: 40px;
+            cursor: pointer;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .color-swatch {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-swatch.selected {
+            border-color: #e67e22;
+            border-width: 3px;
+            transform: scale(1.05);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .value-display {
+            display: inline-block;
+            float: right;
+            color: #e67e22;
+            font-weight: bold;
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #555;
+            backdrop-filter: blur(10px);
+        }
+
+        #info-panel h4 {
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .pattern-btn {
+            padding: 8px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            font-size: 11px;
+            margin: 0;
+            border: 2px solid #bdc3c7;
+        }
+
+        .pattern-btn.selected {
+            background: #e67e22;
+            color: white;
+            border-color: #d35400;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-left: 10px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #e67e22;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="ui-panel">
+        <h1>🎨 Stained Glass Designer</h1>
+
+        <div class="section">
+            <h3>💡 Lamp Style</h3>
+            <div class="preset-grid">
+                <button class="preset-btn" onclick="loadPreset('tiffany')">Tiffany Classic</button>
+                <button class="preset-btn" onclick="loadPreset('victorian')">Victorian</button>
+                <button class="preset-btn" onclick="loadPreset('modern')">Modern Geometric</button>
+                <button class="preset-btn" onclick="loadPreset('artdeco')">Art Deco</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🔷 Lamp Shape</h3>
+            <div class="control-group">
+                <label>Base Shape</label>
+                <select id="lampShape" onchange="updateLampShape()">
+                    <option value="dome">Classic Dome</option>
+                    <option value="cone">Cone</option>
+                    <option value="cylinder">Cylinder</option>
+                    <option value="hexagon">Hexagonal</option>
+                    <option value="octagon">Octagonal</option>
+                    <option value="square">Square Pyramid</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Segments <span class="value-display" id="segmentsValue">16</span></label>
+                <input type="range" id="segments" min="6" max="32" value="16" oninput="updateSegments()">
+            </div>
+            <div class="control-group">
+                <label>Height <span class="value-display" id="heightValue">5.0</span></label>
+                <input type="range" id="height" min="3" max="8" step="0.5" value="5" oninput="updateHeight()">
+            </div>
+            <div class="control-group">
+                <label>Radius <span class="value-display" id="radiusValue">4.0</span></label>
+                <input type="range" id="radius" min="2" max="6" step="0.5" value="4" oninput="updateRadius()">
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🎨 Glass Colors</h3>
+            <div class="control-group">
+                <label>Primary Color</label>
+                <input type="color" id="primaryColor" value="#ff6b6b" oninput="updateColors()">
+            </div>
+            <div class="control-group">
+                <label>Secondary Color</label>
+                <input type="color" id="secondaryColor" value="#4ecdc4" oninput="updateColors()">
+            </div>
+            <div class="control-group">
+                <label>Accent Color</label>
+                <input type="color" id="accentColor" value="#ffe66d" oninput="updateColors()">
+            </div>
+            <div class="control-group">
+                <label>Quick Colors</label>
+                <div class="color-grid">
+                    <div class="color-swatch" style="background: #ff6b6b" onclick="setQuickColor('#ff6b6b')"></div>
+                    <div class="color-swatch" style="background: #4ecdc4" onclick="setQuickColor('#4ecdc4')"></div>
+                    <div class="color-swatch" style="background: #ffe66d" onclick="setQuickColor('#ffe66d')"></div>
+                    <div class="color-swatch" style="background: #a8dadc" onclick="setQuickColor('#a8dadc')"></div>
+                    <div class="color-swatch" style="background: #f1faee" onclick="setQuickColor('#f1faee')"></div>
+                    <div class="color-swatch" style="background: #e63946" onclick="setQuickColor('#e63946')"></div>
+                    <div class="color-swatch" style="background: #457b9d" onclick="setQuickColor('#457b9d')"></div>
+                    <div class="color-swatch" style="background: #a8e6cf" onclick="setQuickColor('#a8e6cf')"></div>
+                    <div class="color-swatch" style="background: #ffd3b6" onclick="setQuickColor('#ffd3b6')"></div>
+                    <div class="color-swatch" style="background: #ffaaa5" onclick="setQuickColor('#ffaaa5')"></div>
+                    <div class="color-swatch" style="background: #ff8b94" onclick="setQuickColor('#ff8b94')"></div>
+                    <div class="color-swatch" style="background: #9b59b6" onclick="setQuickColor('#9b59b6')"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>✨ Glass Properties</h3>
+            <div class="control-group">
+                <label>Opacity <span class="value-display" id="opacityValue">0.8</span></label>
+                <input type="range" id="opacity" min="0.3" max="1" step="0.05" value="0.8" oninput="updateGlassProperties()">
+            </div>
+            <div class="control-group">
+                <label>Translucency <span class="value-display" id="translucencyValue">0.7</span></label>
+                <input type="range" id="translucency" min="0" max="1" step="0.1" value="0.7" oninput="updateGlassProperties()">
+            </div>
+            <div class="control-group">
+                <label>Glass Texture</label>
+                <select id="glassTexture" onchange="updateGlassProperties()">
+                    <option value="smooth">Smooth</option>
+                    <option value="rippled">Rippled</option>
+                    <option value="frosted">Frosted</option>
+                    <option value="cathedral">Cathedral</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🔶 Pattern Design</h3>
+            <div class="pattern-grid">
+                <button class="pattern-btn selected" onclick="setPattern('alternating')">Alternating</button>
+                <button class="pattern-btn" onclick="setPattern('gradient')">Gradient</button>
+                <button class="pattern-btn" onclick="setPattern('random')">Random</button>
+                <button class="pattern-btn" onclick="setPattern('striped')">Striped</button>
+                <button class="pattern-btn" onclick="setPattern('spiral')">Spiral</button>
+                <button class="pattern-btn" onclick="setPattern('checker')">Checker</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>💡 Lighting</h3>
+            <div class="control-group">
+                <label>Light Intensity <span class="value-display" id="lightIntensityValue">2.0</span></label>
+                <input type="range" id="lightIntensity" min="0.5" max="4" step="0.1" value="2" oninput="updateLighting()">
+            </div>
+            <div class="control-group">
+                <label>Light Color</label>
+                <input type="color" id="lightColor" value="#fff5e6" oninput="updateLighting()">
+            </div>
+            <div class="control-group">
+                <label>
+                    Ambient Light
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ambientToggle" checked onchange="updateLighting()">
+                        <span class="slider"></span>
+                    </label>
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🔧 Frame & Base</h3>
+            <div class="control-group">
+                <label>Frame Material</label>
+                <select id="frameMaterial" onchange="updateFrame()">
+                    <option value="bronze">Antique Bronze</option>
+                    <option value="brass">Polished Brass</option>
+                    <option value="copper">Copper</option>
+                    <option value="black">Black Iron</option>
+                    <option value="silver">Silver</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Frame Thickness <span class="value-display" id="frameThicknessValue">0.1</span></label>
+                <input type="range" id="frameThickness" min="0.05" max="0.2" step="0.01" value="0.1" oninput="updateFrame()">
+            </div>
+        </div>
+
+        <button onclick="randomizeDesign()">🎲 Randomize Design</button>
+        <button onclick="saveDesign()">💾 Save Design</button>
+        <button onclick="resetToDefault()">🔄 Reset to Default</button>
+    </div>
+
+    <div id="info-panel">
+        <h4>🖱️ Controls</h4>
+        <p>• Left Click + Drag: Rotate lamp</p>
+        <p>• Right Click + Drag: Pan view</p>
+        <p>• Scroll: Zoom in/out</p>
+        <p>• Double Click: Reset view</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 8, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Orbit controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 8;
+        controls.maxDistance = 30;
+
+        // Lighting setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        mainLight.position.set(10, 10, 10);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        scene.add(mainLight);
+
+        const fillLight = new THREE.DirectionalLight(0x6688ff, 0.3);
+        fillLight.position.set(-10, 5, -10);
+        scene.add(fillLight);
+
+        // Display platform
+        const platformGeometry = new THREE.CylinderGeometry(8, 8, 0.5, 32);
+        const platformMaterial = new THREE.MeshStandardMaterial({
+            color: 0x34495e,
+            roughness: 0.7,
+            metalness: 0.3
+        });
+        const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+        platform.position.y = -0.25;
+        platform.receiveShadow = true;
+        scene.add(platform);
+
+        // Lamp configuration
+        let lampConfig = {
+            shape: 'dome',
+            segments: 16,
+            height: 5,
+            radius: 4,
+            primaryColor: 0xff6b6b,
+            secondaryColor: 0x4ecdc4,
+            accentColor: 0xffe66d,
+            opacity: 0.8,
+            translucency: 0.7,
+            pattern: 'alternating',
+            glassTexture: 'smooth',
+            lightIntensity: 2,
+            lightColor: 0xfff5e6,
+            frameMaterial: 'bronze',
+            frameThickness: 0.1
+        };
+
+        let lamp = null;
+        let glassSegments = [];
+        let frameSegments = [];
+        let internalLight = null;
+
+        // Frame materials
+        const frameMaterials = {
+            bronze: { color: 0x8b6914, roughness: 0.4, metalness: 0.8 },
+            brass: { color: 0xb5a642, roughness: 0.3, metalness: 0.9 },
+            copper: { color: 0xb87333, roughness: 0.4, metalness: 0.8 },
+            black: { color: 0x1a1a1a, roughness: 0.6, metalness: 0.5 },
+            silver: { color: 0xc0c0c0, roughness: 0.2, metalness: 0.95 }
+        };
+
+        function createLamp() {
+            // Remove existing lamp
+            if (lamp) {
+                scene.remove(lamp);
+            }
+
+            lamp = new THREE.Group();
+            glassSegments = [];
+            frameSegments = [];
+
+            // Create base
+            const baseGeometry = new THREE.CylinderGeometry(1.5, 2, 1, 32);
+            const frameMat = frameMaterials[lampConfig.frameMaterial];
+            const baseMaterial = new THREE.MeshStandardMaterial({
+                color: frameMat.color,
+                roughness: frameMat.roughness,
+                metalness: frameMat.metalness
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.position.y = 0.5;
+            base.castShadow = true;
+            lamp.add(base);
+
+            // Create stem
+            const stemGeometry = new THREE.CylinderGeometry(0.3, 0.5, 2, 16);
+            const stem = new THREE.Mesh(stemGeometry, baseMaterial);
+            stem.position.y = 2;
+            stem.castShadow = true;
+            lamp.add(stem);
+
+            // Create shade based on shape
+            createShade();
+
+            // Internal light
+            if (internalLight) {
+                lamp.remove(internalLight);
+            }
+            internalLight = new THREE.PointLight(
+                lampConfig.lightColor,
+                lampConfig.lightIntensity,
+                20
+            );
+            internalLight.position.y = 3 + lampConfig.height / 2;
+            internalLight.castShadow = false;
+            lamp.add(internalLight);
+
+            // Add glow sphere
+            const glowGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: lampConfig.lightColor,
+                transparent: true,
+                opacity: 0.8
+            });
+            const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+            glowSphere.position.copy(internalLight.position);
+            lamp.add(glowSphere);
+
+            scene.add(lamp);
+        }
+
+        function createShade() {
+            const colors = [lampConfig.primaryColor, lampConfig.secondaryColor, lampConfig.accentColor];
+            const segments = lampConfig.segments;
+            const height = lampConfig.height;
+            const radius = lampConfig.radius;
+
+            // Frame material
+            const frameMat = frameMaterials[lampConfig.frameMaterial];
+            const frameMaterial = new THREE.MeshStandardMaterial({
+                color: frameMat.color,
+                roughness: frameMat.roughness,
+                metalness: frameMat.metalness
+            });
+
+            // Create glass panels and frames
+            for (let i = 0; i < segments; i++) {
+                const angle1 = (i / segments) * Math.PI * 2;
+                const angle2 = ((i + 1) / segments) * Math.PI * 2;
+
+                // Determine color based on pattern
+                let colorIndex = 0;
+                switch (lampConfig.pattern) {
+                    case 'alternating':
+                        colorIndex = i % 3;
+                        break;
+                    case 'gradient':
+                        colorIndex = Math.floor((i / segments) * 3);
+                        break;
+                    case 'random':
+                        colorIndex = Math.floor(Math.random() * 3);
+                        break;
+                    case 'striped':
+                        colorIndex = Math.floor(i / 2) % 3;
+                        break;
+                    case 'spiral':
+                        colorIndex = (i + Math.floor(i / 4)) % 3;
+                        break;
+                    case 'checker':
+                        colorIndex = (i % 2 === 0) ? 0 : (i % 3 === 0 ? 1 : 2);
+                        break;
+                }
+
+                // Create glass panel
+                const panelShape = new THREE.Shape();
+                const topRadius = lampConfig.shape === 'dome' ? radius * 0.3 : radius;
+                const bottomRadius = radius;
+
+                const x1 = Math.cos(angle1) * bottomRadius;
+                const z1 = Math.sin(angle1) * bottomRadius;
+                const x2 = Math.cos(angle2) * bottomRadius;
+                const z2 = Math.sin(angle2) * bottomRadius;
+                const x3 = Math.cos(angle2) * topRadius;
+                const z3 = Math.sin(angle2) * topRadius;
+                const x4 = Math.cos(angle1) * topRadius;
+                const z4 = Math.sin(angle1) * topRadius;
+
+                // Create glass material
+                const glassMaterial = new THREE.MeshPhysicalMaterial({
+                    color: colors[colorIndex],
+                    transparent: true,
+                    opacity: lampConfig.opacity,
+                    roughness: 0.1,
+                    metalness: 0,
+                    transmission: lampConfig.translucency,
+                    thickness: 0.5,
+                    envMapIntensity: 1,
+                    clearcoat: 0.5,
+                    clearcoatRoughness: 0.1
+                });
+
+                // Create panel geometry
+                const points = [];
+                points.push(new THREE.Vector3(x1, 3, z1));
+                points.push(new THREE.Vector3(x2, 3, z2));
+                points.push(new THREE.Vector3(x3, 3 + height, z3));
+                points.push(new THREE.Vector3(x4, 3 + height, z4));
+
+                const panelGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                panelGeometry.setIndex([0, 1, 2, 0, 2, 3]);
+                panelGeometry.computeVertexNormals();
+
+                const panel = new THREE.Mesh(panelGeometry, glassMaterial);
+                lamp.add(panel);
+                glassSegments.push(panel);
+
+                // Create frame edges
+                const edgeMaterial = new THREE.MeshStandardMaterial({
+                    color: frameMat.color,
+                    roughness: frameMat.roughness,
+                    metalness: frameMat.metalness
+                });
+
+                // Vertical edges
+                const edgeGeometry = new THREE.CylinderGeometry(
+                    lampConfig.frameThickness,
+                    lampConfig.frameThickness,
+                    height,
+                    8
+                );
+
+                const edge1 = new THREE.Mesh(edgeGeometry, edgeMaterial);
+                edge1.position.set(x1, 3 + height / 2, z1);
+                edge1.castShadow = true;
+                lamp.add(edge1);
+
+                // Top and bottom rings
+                if (i === 0) {
+                    const topRingGeometry = new THREE.TorusGeometry(
+                        topRadius,
+                        lampConfig.frameThickness,
+                        8,
+                        segments
+                    );
+                    const topRing = new THREE.Mesh(topRingGeometry, edgeMaterial);
+                    topRing.position.y = 3 + height;
+                    topRing.rotation.x = Math.PI / 2;
+                    topRing.castShadow = true;
+                    lamp.add(topRing);
+
+                    const bottomRingGeometry = new THREE.TorusGeometry(
+                        bottomRadius,
+                        lampConfig.frameThickness,
+                        8,
+                        segments
+                    );
+                    const bottomRing = new THREE.Mesh(bottomRingGeometry, edgeMaterial);
+                    bottomRing.position.y = 3;
+                    bottomRing.rotation.x = Math.PI / 2;
+                    bottomRing.castShadow = true;
+                    lamp.add(bottomRing);
+                }
+            }
+
+            // Top cap
+            const capGeometry = new THREE.ConeGeometry(topRadius * 0.5, 0.8, segments);
+            const cap = new THREE.Mesh(capGeometry, frameMaterial);
+            cap.position.y = 3 + height + 0.4;
+            cap.castShadow = true;
+            lamp.add(cap);
+        }
+
+        // UI Update Functions
+        function updateLampShape() {
+            lampConfig.shape = document.getElementById('lampShape').value;
+            createLamp();
+        }
+
+        function updateSegments() {
+            lampConfig.segments = parseInt(document.getElementById('segments').value);
+            document.getElementById('segmentsValue').textContent = lampConfig.segments;
+            createLamp();
+        }
+
+        function updateHeight() {
+            lampConfig.height = parseFloat(document.getElementById('height').value);
+            document.getElementById('heightValue').textContent = lampConfig.height.toFixed(1);
+            createLamp();
+        }
+
+        function updateRadius() {
+            lampConfig.radius = parseFloat(document.getElementById('radius').value);
+            document.getElementById('radiusValue').textContent = lampConfig.radius.toFixed(1);
+            createLamp();
+        }
+
+        function updateColors() {
+            lampConfig.primaryColor = parseInt(document.getElementById('primaryColor').value.replace('#', '0x'));
+            lampConfig.secondaryColor = parseInt(document.getElementById('secondaryColor').value.replace('#', '0x'));
+            lampConfig.accentColor = parseInt(document.getElementById('accentColor').value.replace('#', '0x'));
+            createLamp();
+        }
+
+        function setQuickColor(color) {
+            document.getElementById('primaryColor').value = color;
+            updateColors();
+        }
+
+        function updateGlassProperties() {
+            lampConfig.opacity = parseFloat(document.getElementById('opacity').value);
+            lampConfig.translucency = parseFloat(document.getElementById('translucency').value);
+            lampConfig.glassTexture = document.getElementById('glassTexture').value;
+            document.getElementById('opacityValue').textContent = lampConfig.opacity.toFixed(2);
+            document.getElementById('translucencyValue').textContent = lampConfig.translucency.toFixed(1);
+            createLamp();
+        }
+
+        function setPattern(pattern) {
+            lampConfig.pattern = pattern;
+            document.querySelectorAll('.pattern-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+            createLamp();
+        }
+
+        function updateLighting() {
+            lampConfig.lightIntensity = parseFloat(document.getElementById('lightIntensity').value);
+            lampConfig.lightColor = parseInt(document.getElementById('lightColor').value.replace('#', '0x'));
+            document.getElementById('lightIntensityValue').textContent = lampConfig.lightIntensity.toFixed(1);
+
+            if (document.getElementById('ambientToggle').checked) {
+                ambientLight.intensity = 0.4;
+            } else {
+                ambientLight.intensity = 0.1;
+            }
+
+            if (internalLight) {
+                internalLight.intensity = lampConfig.lightIntensity;
+                internalLight.color.setHex(lampConfig.lightColor);
+            }
+        }
+
+        function updateFrame() {
+            lampConfig.frameMaterial = document.getElementById('frameMaterial').value;
+            lampConfig.frameThickness = parseFloat(document.getElementById('frameThickness').value);
+            document.getElementById('frameThicknessValue').textContent = lampConfig.frameThickness.toFixed(2);
+            createLamp();
+        }
+
+        function loadPreset(preset) {
+            switch (preset) {
+                case 'tiffany':
+                    lampConfig.shape = 'dome';
+                    lampConfig.primaryColor = 0xff6b6b;
+                    lampConfig.secondaryColor = 0x4ecdc4;
+                    lampConfig.accentColor = 0xffe66d;
+                    lampConfig.pattern = 'alternating';
+                    lampConfig.frameMaterial = 'bronze';
+                    break;
+                case 'victorian':
+                    lampConfig.shape = 'dome';
+                    lampConfig.primaryColor = 0x8b4513;
+                    lampConfig.secondaryColor = 0x9b59b6;
+                    lampConfig.accentColor = 0xffd700;
+                    lampConfig.pattern = 'gradient';
+                    lampConfig.frameMaterial = 'brass';
+                    break;
+                case 'modern':
+                    lampConfig.shape = 'cylinder';
+                    lampConfig.primaryColor = 0x3498db;
+                    lampConfig.secondaryColor = 0x2ecc71;
+                    lampConfig.accentColor = 0xf39c12;
+                    lampConfig.pattern = 'striped';
+                    lampConfig.frameMaterial = 'black';
+                    break;
+                case 'artdeco':
+                    lampConfig.shape = 'cone';
+                    lampConfig.primaryColor = 0xe74c3c;
+                    lampConfig.secondaryColor = 0x1abc9c;
+                    lampConfig.accentColor = 0xf1c40f;
+                    lampConfig.pattern = 'checker';
+                    lampConfig.frameMaterial = 'silver';
+                    break;
+            }
+            updateUIFromConfig();
+            createLamp();
+        }
+
+        function randomizeDesign() {
+            const shapes = ['dome', 'cone', 'cylinder', 'hexagon', 'octagon', 'square'];
+            const patterns = ['alternating', 'gradient', 'random', 'striped', 'spiral', 'checker'];
+            const materials = Object.keys(frameMaterials);
+
+            lampConfig.shape = shapes[Math.floor(Math.random() * shapes.length)];
+            lampConfig.segments = Math.floor(Math.random() * 27) + 6;
+            lampConfig.primaryColor = Math.floor(Math.random() * 0xffffff);
+            lampConfig.secondaryColor = Math.floor(Math.random() * 0xffffff);
+            lampConfig.accentColor = Math.floor(Math.random() * 0xffffff);
+            lampConfig.pattern = patterns[Math.floor(Math.random() * patterns.length)];
+            lampConfig.frameMaterial = materials[Math.floor(Math.random() * materials.length)];
+
+            updateUIFromConfig();
+            createLamp();
+        }
+
+        function updateUIFromConfig() {
+            document.getElementById('lampShape').value = lampConfig.shape;
+            document.getElementById('segments').value = lampConfig.segments;
+            document.getElementById('height').value = lampConfig.height;
+            document.getElementById('radius').value = lampConfig.radius;
+            document.getElementById('primaryColor').value = '#' + lampConfig.primaryColor.toString(16).padStart(6, '0');
+            document.getElementById('secondaryColor').value = '#' + lampConfig.secondaryColor.toString(16).padStart(6, '0');
+            document.getElementById('accentColor').value = '#' + lampConfig.accentColor.toString(16).padStart(6, '0');
+            document.getElementById('frameMaterial').value = lampConfig.frameMaterial;
+
+            document.getElementById('segmentsValue').textContent = lampConfig.segments;
+            document.getElementById('heightValue').textContent = lampConfig.height.toFixed(1);
+            document.getElementById('radiusValue').textContent = lampConfig.radius.toFixed(1);
+        }
+
+        function saveDesign() {
+            const designData = JSON.stringify(lampConfig, null, 2);
+            const blob = new Blob([designData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'stained-glass-lamp-design.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('Design saved! 💾');
+        }
+
+        function resetToDefault() {
+            lampConfig = {
+                shape: 'dome',
+                segments: 16,
+                height: 5,
+                radius: 4,
+                primaryColor: 0xff6b6b,
+                secondaryColor: 0x4ecdc4,
+                accentColor: 0xffe66d,
+                opacity: 0.8,
+                translucency: 0.7,
+                pattern: 'alternating',
+                glassTexture: 'smooth',
+                lightIntensity: 2,
+                lightColor: 0xfff5e6,
+                frameMaterial: 'bronze',
+                frameThickness: 0.1
+            };
+            updateUIFromConfig();
+            createLamp();
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        createLamp();
+        animate();
+    </script>
+</body>
+</html>
