@@ -237,8 +237,8 @@
 
         // Scene Setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
-        scene.fog = new THREE.Fog(0x87CEEB, 50, 500);
+        scene.background = new THREE.Color(0x0a0a1a);
+        scene.fog = new THREE.Fog(0x0a0a1a, 50, 500);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -247,27 +247,48 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Lighting - Moonlight
+        const ambientLight = new THREE.AmbientLight(0x4466ff, 0.2);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(50, 50, 50);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        directionalLight.shadow.camera.left = -100;
-        directionalLight.shadow.camera.right = 100;
-        directionalLight.shadow.camera.top = 100;
-        directionalLight.shadow.camera.bottom = -100;
-        scene.add(directionalLight);
+        const moonLight = new THREE.DirectionalLight(0x8899ff, 0.5);
+        moonLight.position.set(50, 80, 30);
+        moonLight.castShadow = true;
+        moonLight.shadow.mapSize.width = 2048;
+        moonLight.shadow.mapSize.height = 2048;
+        moonLight.shadow.camera.left = -100;
+        moonLight.shadow.camera.right = 100;
+        moonLight.shadow.camera.top = 100;
+        moonLight.shadow.camera.bottom = -100;
+        scene.add(moonLight);
+
+        // Stars
+        const starsGeometry = new THREE.BufferGeometry();
+        const starCount = 3000;
+        const starPositions = new Float32Array(starCount * 3);
+
+        for (let i = 0; i < starCount * 3; i += 3) {
+            starPositions[i] = (Math.random() - 0.5) * 2000;
+            starPositions[i + 1] = Math.random() * 500 + 100;
+            starPositions[i + 2] = (Math.random() - 0.5) * 2000;
+        }
+
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starsMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 1.5,
+            transparent: true,
+            opacity: 0.8
+        });
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
 
         // Ground
         const groundGeometry = new THREE.PlaneGeometry(1000, 1000, 50, 50);
         const groundMaterial = new THREE.MeshStandardMaterial({
-            color: 0x4a9d4a,
-            roughness: 0.8,
-            metalness: 0.2
+            color: 0x1a2a1a,
+            roughness: 0.9,
+            metalness: 0.1
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -275,7 +296,7 @@
         scene.add(ground);
 
         // Add grid pattern to ground
-        const gridHelper = new THREE.GridHelper(1000, 100, 0x000000, 0x3a7a3a);
+        const gridHelper = new THREE.GridHelper(1000, 100, 0x333333, 0x1a3a2a);
         gridHelper.position.y = 0.1;
         scene.add(gridHelper);
 
@@ -322,6 +343,146 @@
 
         car.position.set(0, 0, 0);
         scene.add(car);
+
+        // Add headlights
+        const headlight1 = new THREE.SpotLight(0xffffaa, 1, 50, Math.PI / 6, 0.5);
+        headlight1.position.set(-0.7, 1.2, 2);
+        headlight1.target.position.set(-0.7, 0, 10);
+        scene.add(headlight1.target);
+        headlight1.castShadow = true;
+        car.add(headlight1);
+
+        const headlight2 = new THREE.SpotLight(0xffffaa, 1, 50, Math.PI / 6, 0.5);
+        headlight2.position.set(0.7, 1.2, 2);
+        headlight2.target.position.set(0.7, 0, 10);
+        scene.add(headlight2.target);
+        headlight2.castShadow = true;
+        car.add(headlight2);
+
+        // Obstacles
+        const obstacles = [];
+
+        function createTree(x, z) {
+            const tree = new THREE.Group();
+
+            // Trunk
+            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 4, 8);
+            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3520 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 2;
+            trunk.castShadow = true;
+            tree.add(trunk);
+
+            // Foliage
+            const foliageGeometry = new THREE.ConeGeometry(2, 4, 8);
+            const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x1a4a1a });
+            const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+            foliage.position.y = 5;
+            foliage.castShadow = true;
+            tree.add(foliage);
+
+            tree.position.set(x, 0, z);
+            scene.add(tree);
+            obstacles.push({ object: tree, radius: 2, type: 'tree' });
+            return tree;
+        }
+
+        function createRock(x, z) {
+            const rockGeometry = new THREE.DodecahedronGeometry(1.5);
+            const rockMaterial = new THREE.MeshStandardMaterial({
+                color: 0x666666,
+                roughness: 1,
+                metalness: 0
+            });
+            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+            rock.position.set(x, 1.5, z);
+            rock.rotation.set(Math.random(), Math.random(), Math.random());
+            rock.castShadow = true;
+            rock.receiveShadow = true;
+            scene.add(rock);
+            obstacles.push({ object: rock, radius: 1.8, type: 'rock' });
+            return rock;
+        }
+
+        function createBuilding(x, z, width, height, depth) {
+            const building = new THREE.Group();
+
+            const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+            const buildingMaterial = new THREE.MeshStandardMaterial({
+                color: 0x444444,
+                roughness: 0.7,
+                metalness: 0.3
+            });
+            const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
+            buildingMesh.position.y = height / 2;
+            buildingMesh.castShadow = true;
+            buildingMesh.receiveShadow = true;
+            building.add(buildingMesh);
+
+            // Windows
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 2; j++) {
+                    const windowGeometry = new THREE.BoxGeometry(1, 1, 0.2);
+                    const windowMaterial = new THREE.MeshStandardMaterial({
+                        color: Math.random() > 0.5 ? 0xffff00 : 0x222222,
+                        emissive: Math.random() > 0.5 ? 0xffff00 : 0x000000,
+                        emissiveIntensity: 0.5
+                    });
+                    const window = new THREE.Mesh(windowGeometry, windowMaterial);
+                    window.position.set(j * 3 - 1.5, i * 3 + 2, depth / 2 + 0.1);
+                    building.add(window);
+                }
+            }
+
+            building.position.set(x, 0, z);
+            scene.add(building);
+            obstacles.push({ object: building, radius: Math.max(width, depth) / 2 + 1, type: 'building' });
+            return building;
+        }
+
+        function createRamp(x, z) {
+            const rampGeometry = new THREE.BoxGeometry(8, 0.5, 12);
+            const rampMaterial = new THREE.MeshStandardMaterial({
+                color: 0x8B4513,
+                roughness: 0.8
+            });
+            const ramp = new THREE.Mesh(rampGeometry, rampMaterial);
+            ramp.position.set(x, 0.25, z);
+            ramp.rotation.x = Math.PI / 12;
+            ramp.castShadow = true;
+            ramp.receiveShadow = true;
+            scene.add(ramp);
+            obstacles.push({ object: ramp, radius: 6, type: 'ramp' });
+            return ramp;
+        }
+
+        // Generate random obstacles
+        const obstaclePositions = [
+            { x: 15, z: 10 },
+            { x: -20, z: 15 },
+            { x: 30, z: -20 },
+            { x: -15, z: -25 },
+            { x: 40, z: 30 },
+            { x: -35, z: -10 },
+            { x: 25, z: 35 },
+            { x: -30, z: 25 },
+            { x: 45, z: -15 },
+            { x: 10, z: -35 }
+        ];
+
+        obstaclePositions.forEach((pos, i) => {
+            if (i % 3 === 0) {
+                createTree(pos.x, pos.z);
+            } else if (i % 3 === 1) {
+                createRock(pos.x, pos.z);
+            } else {
+                createBuilding(pos.x, pos.z, 6, 10, 6);
+            }
+        });
+
+        // Add a couple ramps
+        createRamp(50, 20);
+        createRamp(-40, -30);
 
         // Car Physics
         let velocity = new THREE.Vector3(0, 0, 0);
@@ -536,6 +697,31 @@
             });
         }
 
+        function checkObstacleCollisions() {
+            const carPosition = new THREE.Vector3();
+            car.getWorldPosition(carPosition);
+
+            obstacles.forEach(obstacle => {
+                const obstaclePosition = new THREE.Vector3();
+                obstacle.object.getWorldPosition(obstaclePosition);
+
+                const distance = carPosition.distanceTo(obstaclePosition);
+
+                if (distance < obstacle.radius + 2) {
+                    // Calculate bounce direction
+                    const bounceDirection = new THREE.Vector3()
+                        .subVectors(carPosition, obstaclePosition)
+                        .normalize();
+
+                    // Push car away from obstacle
+                    velocity.add(bounceDirection.multiplyScalar(0.05));
+
+                    // Reduce speed on collision
+                    velocity.multiplyScalar(0.7);
+                }
+            });
+        }
+
         // Camera Follow
         function updateCamera() {
             const cameraOffset = new THREE.Vector3(0, 8, 12);
@@ -571,6 +757,19 @@
             const scale = 2;
             const centerX = 100;
             const centerY = 100;
+
+            // Draw obstacles
+            obstacles.forEach(obstacle => {
+                const x = centerX + (obstacle.object.position.x - car.position.x) * scale;
+                const y = centerY + (obstacle.object.position.z - car.position.z) * scale;
+
+                if (x > 0 && x < 200 && y > 0 && y < 200) {
+                    minimapCtx.fillStyle = '#666666';
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(x, y, 3, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
+            });
 
             // Draw portals
             portals.forEach(portal => {
@@ -672,6 +871,7 @@
 
             // Check collisions
             checkPortalCollisions();
+            checkObstacleCollisions();
 
             // Update camera
             updateCamera();
