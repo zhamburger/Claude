@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickScope Trainer - FPS Practice</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            background: #000;
+            cursor: none;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ff00;
+            font-size: 16px;
+            text-shadow: 0 0 10px #00ff00;
+            z-index: 100;
+        }
+
+        #hud h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #hud p {
+            margin: 5px 0;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        #crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #scope {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #scope.active {
+            display: block;
+        }
+
+        #scope::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: transparent;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                0 0 0 1000px rgba(0, 0, 0, 0.9),
+                inset 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        #scope::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        #scopeVertical {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.5);
+            display: none;
+            pointer-events: none;
+            z-index: 6;
+        }
+
+        #scopeVertical.active {
+            display: block;
+        }
+
+        #hitmarker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 30px;
+            height: 30px;
+            display: none;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #hitmarker::before,
+        #hitmarker::after {
+            content: '';
+            position: absolute;
+            background: #fff;
+        }
+
+        #hitmarker::before {
+            width: 100%;
+            height: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        #hitmarker::after {
+            width: 2px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        #instructions h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        #instructions p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        #instructions button {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        #instructions button:hover {
+            background: #00cc00;
+        }
+
+        #notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffaa00;
+            text-shadow: 0 0 20px #ffaa00;
+            display: none;
+            pointer-events: none;
+            z-index: 15;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <h2>🎯 QUICKSCOPE TRAINER</h2>
+        <p>Hits: <span id="hits">0</span></p>
+        <p>Shots: <span id="shots">0</span></p>
+        <p>Accuracy: <span id="accuracy">0</span>%</p>
+        <p>Streak: <span id="streak">0</span></p>
+        <p>Best Streak: <span id="bestStreak">0</span></p>
+        <p>Targets: <span id="targetsHit">0</span></p>
+    </div>
+
+    <div id="crosshair"></div>
+    <div id="scope"></div>
+    <div id="scopeVertical"></div>
+    <div id="hitmarker"></div>
+    <div id="notification"></div>
+
+    <div id="instructions">
+        <h1>QUICKSCOPE TRAINER</h1>
+        <p>🎯 Practice your quick scoping skills!</p>
+        <p><strong>CONTROLS:</strong></p>
+        <p>WASD - Move</p>
+        <p>Mouse - Look Around</p>
+        <p>Right Click - Aim Down Sights (Scope In)</p>
+        <p>Left Click - Shoot</p>
+        <p>ESC - Pause/Show Controls</p>
+        <br>
+        <p>Hit the moving targets as fast as you can!</p>
+        <p>Quick scope for maximum speed!</p>
+        <button onclick="startGame()">START TRAINING</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let gameStarted = false;
+        let isScoped = false;
+        let canShoot = true;
+
+        // Game stats
+        const stats = {
+            hits: 0,
+            shots: 0,
+            streak: 0,
+            bestStreak: 0,
+            targetsHit: 0
+        };
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 50, 300);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(100, 100, 50);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        scene.add(sun);
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(200, 200);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4a9d4a,
+            roughness: 0.8
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Grid
+        const gridHelper = new THREE.GridHelper(200, 50, 0x333333, 0x555555);
+        scene.add(gridHelper);
+
+        // Create cover objects
+        function createCover() {
+            for (let i = 0; i < 15; i++) {
+                const width = 2 + Math.random() * 3;
+                const height = 1 + Math.random() * 3;
+                const depth = 2 + Math.random() * 3;
+
+                const boxGeometry = new THREE.BoxGeometry(width, height, depth);
+                const boxMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x8B4513,
+                    roughness: 0.9
+                });
+                const box = new THREE.Mesh(boxGeometry, boxMaterial);
+
+                box.position.set(
+                    (Math.random() - 0.5) * 150,
+                    height / 2,
+                    (Math.random() - 0.5) * 150
+                );
+                box.castShadow = true;
+                box.receiveShadow = true;
+                scene.add(box);
+            }
+        }
+        createCover();
+
+        // Moving targets
+        const targets = [];
+        const raycaster = new THREE.Raycaster();
+
+        function createTarget() {
+            const targetGroup = new THREE.Group();
+
+            // Target board
+            const boardGeometry = new THREE.BoxGeometry(3, 3, 0.3);
+            const boardMaterial = new THREE.MeshStandardMaterial({
+                color: 0xff4444,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.3
+            });
+            const board = new THREE.Mesh(boardGeometry, boardMaterial);
+            board.castShadow = true;
+            targetGroup.add(board);
+
+            // Bullseye
+            const bullseyeGeometry = new THREE.CircleGeometry(0.5, 32);
+            const bullseyeMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.5
+            });
+            const bullseye = new THREE.Mesh(bullseyeGeometry, bullseyeMaterial);
+            bullseye.position.z = 0.16;
+            targetGroup.add(bullseye);
+
+            // Random position
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 20 + Math.random() * 40;
+            targetGroup.position.set(
+                Math.cos(angle) * distance,
+                1.5 + Math.random() * 2,
+                Math.sin(angle) * distance
+            );
+
+            // Movement pattern
+            targetGroup.userData = {
+                moveSpeed: 0.02 + Math.random() * 0.03,
+                movePattern: Math.random() > 0.5 ? 'horizontal' : 'vertical',
+                moveRange: 5 + Math.random() * 10,
+                startPos: targetGroup.position.clone(),
+                direction: 1,
+                hitCount: 0
+            };
+
+            scene.add(targetGroup);
+            targets.push(targetGroup);
+
+            return targetGroup;
+        }
+
+        // Create initial targets
+        for (let i = 0; i < 8; i++) {
+            createTarget();
+        }
+
+        // Camera/Player controls
+        camera.position.y = 1.6;
+        let velocity = new THREE.Vector3();
+        let moveSpeed = 0.1;
+
+        const keys = {};
+        let mouseX = 0;
+        let mouseY = 0;
+        let rotationX = 0;
+        let rotationY = 0;
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === 'Escape') {
+                document.getElementById('instructions').style.display = 'block';
+                document.exitPointerLock();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        window.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement) {
+                mouseX = e.movementX || 0;
+                mouseY = e.movementY || 0;
+
+                rotationY -= mouseX * 0.002;
+                rotationX -= mouseY * 0.002;
+                rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
+            }
+        });
+
+        // Shooting
+        window.addEventListener('mousedown', (e) => {
+            if (!gameStarted) return;
+
+            if (e.button === 0) { // Left click - shoot
+                shoot();
+            } else if (e.button === 2) { // Right click - scope
+                scopeIn();
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 2) {
+                scopeOut();
+            }
+        });
+
+        window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        function scopeIn() {
+            isScoped = true;
+            camera.fov = 30;
+            camera.updateProjectionMatrix();
+            document.getElementById('scope').classList.add('active');
+            document.getElementById('scopeVertical').classList.add('active');
+            document.getElementById('crosshair').style.display = 'none';
+        }
+
+        function scopeOut() {
+            isScoped = false;
+            camera.fov = 75;
+            camera.updateProjectionMatrix();
+            document.getElementById('scope').classList.remove('active');
+            document.getElementById('scopeVertical').classList.remove('active');
+            document.getElementById('crosshair').style.display = 'block';
+        }
+
+        function shoot() {
+            if (!canShoot) return;
+
+            stats.shots++;
+            canShoot = false;
+
+            // Muzzle flash effect
+            const flash = new THREE.PointLight(0xffaa00, 2, 10);
+            flash.position.copy(camera.position);
+            scene.add(flash);
+            setTimeout(() => scene.remove(flash), 50);
+
+            // Raycast to check for hits
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(targets, true);
+
+            if (intersects.length > 0) {
+                const hitTarget = intersects[0].object.parent;
+                if (targets.includes(hitTarget)) {
+                    // Hit!
+                    stats.hits++;
+                    stats.streak++;
+                    stats.targetsHit++;
+
+                    if (stats.streak > stats.bestStreak) {
+                        stats.bestStreak = stats.streak;
+                    }
+
+                    showHitmarker();
+
+                    // Remove target and spawn new one
+                    scene.remove(hitTarget);
+                    targets.splice(targets.indexOf(hitTarget), 1);
+                    createTarget();
+
+                    if (stats.streak % 5 === 0) {
+                        showNotification(`${stats.streak}x STREAK!`);
+                    }
+                } else {
+                    stats.streak = 0;
+                }
+            } else {
+                stats.streak = 0;
+            }
+
+            updateHUD();
+
+            setTimeout(() => {
+                canShoot = true;
+            }, isScoped ? 400 : 200);
+        }
+
+        function showHitmarker() {
+            const hitmarker = document.getElementById('hitmarker');
+            hitmarker.style.display = 'block';
+            setTimeout(() => {
+                hitmarker.style.display = 'none';
+            }, 100);
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 1000);
+        }
+
+        function updateHUD() {
+            document.getElementById('hits').textContent = stats.hits;
+            document.getElementById('shots').textContent = stats.shots;
+            document.getElementById('accuracy').textContent = stats.shots > 0 ?
+                Math.round((stats.hits / stats.shots) * 100) : 0;
+            document.getElementById('streak').textContent = stats.streak;
+            document.getElementById('bestStreak').textContent = stats.bestStreak;
+            document.getElementById('targetsHit').textContent = stats.targetsHit;
+        }
+
+        function startGame() {
+            gameStarted = true;
+            document.getElementById('instructions').style.display = 'none';
+            renderer.domElement.requestPointerLock();
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (gameStarted && document.pointerLockElement) {
+                // Player movement
+                velocity.set(0, 0, 0);
+
+                if (keys['w']) velocity.z -= moveSpeed;
+                if (keys['s']) velocity.z += moveSpeed;
+                if (keys['a']) velocity.x -= moveSpeed;
+                if (keys['d']) velocity.x += moveSpeed;
+
+                // Apply movement
+                const moveVector = velocity.clone();
+                moveVector.applyEuler(new THREE.Euler(0, rotationY, 0));
+                camera.position.add(moveVector);
+
+                // Keep player above ground
+                camera.position.y = 1.6;
+
+                // Apply rotation
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = rotationY;
+                camera.rotation.x = rotationX;
+
+                // Move targets
+                targets.forEach(target => {
+                    const data = target.userData;
+
+                    if (data.movePattern === 'horizontal') {
+                        target.position.x += data.moveSpeed * data.direction;
+                        if (Math.abs(target.position.x - data.startPos.x) > data.moveRange) {
+                            data.direction *= -1;
+                        }
+                    } else {
+                        target.position.z += data.moveSpeed * data.direction;
+                        if (Math.abs(target.position.z - data.startPos.z) > data.moveRange) {
+                            data.direction *= -1;
+                        }
+                    }
+
+                    // Make target face camera
+                    target.lookAt(camera.position);
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
