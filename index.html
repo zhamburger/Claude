@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Car Drive - Link Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            min-width: 250px;
+        }
+
+        #hud h2 {
+            margin-bottom: 10px;
+            font-size: 24px;
+            color: #00ff88;
+        }
+
+        #hud p {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #hud .label {
+            color: #aaa;
+        }
+
+        #hud .value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            font-size: 14px;
+        }
+
+        #controls h3 {
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+
+        #linkPanel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            color: white;
+            max-width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #linkPanel h3 {
+            margin-bottom: 15px;
+            color: #00ff88;
+        }
+
+        #addLinkForm {
+            margin-bottom: 20px;
+        }
+
+        #addLinkForm input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        #addLinkForm input::placeholder {
+            color: #aaa;
+        }
+
+        #addLinkForm button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        #addLinkForm button:hover {
+            transform: scale(1.05);
+        }
+
+        #linksList {
+            list-style: none;
+        }
+
+        #linksList li {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #00ff88;
+        }
+
+        #linksList li .link-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #00ff88;
+        }
+
+        #linksList li .link-url {
+            font-size: 12px;
+            color: #aaa;
+            word-break: break-all;
+        }
+
+        #linksList li .link-status {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #ffaa00;
+        }
+
+        #linksList li.collected {
+            border-left-color: #ffd700;
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        #linksList li.collected .link-status {
+            color: #ffd700;
+        }
+
+        #notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 255, 136, 0.95);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        #minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <h2>🏎️ Link Explorer</h2>
+        <p><span class="label">Score:</span> <span class="value" id="score">0</span></p>
+        <p><span class="label">Distance:</span> <span class="value" id="distance">0</span>m</p>
+        <p><span class="label">Speed:</span> <span class="value" id="speed">0</span> km/h</p>
+        <p><span class="label">Links Found:</span> <span class="value" id="linksCollected">0</span>/<span id="totalLinks">0</span></p>
+    </div>
+
+    <div id="controls">
+        <h3>Controls</h3>
+        <p>🎮 WASD or Arrow Keys - Drive</p>
+        <p>🚗 Space - Brake</p>
+        <p>📍 Drive into portals to collect links!</p>
+    </div>
+
+    <div id="linkPanel">
+        <h3>🔗 Link Destinations</h3>
+        <div id="addLinkForm">
+            <input type="text" id="linkTitle" placeholder="Link Title (e.g., GitHub)" />
+            <input type="url" id="linkUrl" placeholder="URL (e.g., https://github.com)" />
+            <button onclick="addLink()">+ Add Link Portal</button>
+        </div>
+        <ul id="linksList"></ul>
+    </div>
+
+    <div id="notification"></div>
+    <canvas id="minimap"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game State
+        const gameState = {
+            score: 0,
+            distance: 0,
+            linksCollected: 0,
+            links: []
+        };
+
+        // Scene Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 50, 500);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 50, 50);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.left = -100;
+        directionalLight.shadow.camera.right = 100;
+        directionalLight.shadow.camera.top = 100;
+        directionalLight.shadow.camera.bottom = -100;
+        scene.add(directionalLight);
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(1000, 1000, 50, 50);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4a9d4a,
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Add grid pattern to ground
+        const gridHelper = new THREE.GridHelper(1000, 100, 0x000000, 0x3a7a3a);
+        gridHelper.position.y = 0.1;
+        scene.add(gridHelper);
+
+        // Car Creation
+        const car = new THREE.Group();
+
+        // Car body
+        const bodyGeometry = new THREE.BoxGeometry(2, 0.8, 4);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.6, roughness: 0.4 });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = 1;
+        body.castShadow = true;
+        car.add(body);
+
+        // Car cabin
+        const cabinGeometry = new THREE.BoxGeometry(1.6, 0.6, 2);
+        const cabinMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.3 });
+        const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
+        cabin.position.y = 1.7;
+        cabin.position.z = -0.3;
+        cabin.castShadow = true;
+        car.add(cabin);
+
+        // Wheels
+        const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+        const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+
+        const wheelPositions = [
+            { x: -1.1, y: 0.4, z: 1.2 },
+            { x: 1.1, y: 0.4, z: 1.2 },
+            { x: -1.1, y: 0.4, z: -1.2 },
+            { x: 1.1, y: 0.4, z: -1.2 }
+        ];
+
+        const wheels = [];
+        wheelPositions.forEach(pos => {
+            const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            wheel.rotation.z = Math.PI / 2;
+            wheel.position.set(pos.x, pos.y, pos.z);
+            wheel.castShadow = true;
+            car.add(wheel);
+            wheels.push(wheel);
+        });
+
+        car.position.set(0, 0, 0);
+        scene.add(car);
+
+        // Car Physics
+        let velocity = new THREE.Vector3(0, 0, 0);
+        let acceleration = 0;
+        let rotation = 0;
+        const maxSpeed = 0.5;
+        const accelerationRate = 0.02;
+        const friction = 0.95;
+        const turnSpeed = 0.03;
+
+        // Input Handling
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        // Link Portals
+        const portals = [];
+
+        function createPortal(x, z, linkData) {
+            const portalGroup = new THREE.Group();
+
+            // Main pillar
+            const pillarGeometry = new THREE.CylinderGeometry(1.5, 1.5, 8, 8);
+            const pillarMaterial = new THREE.MeshStandardMaterial({
+                color: 0x00ff88,
+                emissive: 0x00ff88,
+                emissiveIntensity: 0.5,
+                metalness: 0.8,
+                roughness: 0.2,
+                transparent: true,
+                opacity: 0.8
+            });
+            const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+            pillar.position.y = 4;
+            pillar.castShadow = true;
+            portalGroup.add(pillar);
+
+            // Rotating ring
+            const ringGeometry = new THREE.TorusGeometry(2, 0.2, 16, 32);
+            const ringMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffaa00,
+                emissive: 0xffaa00,
+                emissiveIntensity: 0.8
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.position.y = 4;
+            ring.rotation.x = Math.PI / 2;
+            portalGroup.add(ring);
+
+            // Particles around portal
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particleCount = 50;
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 5;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const particlesMaterial = new THREE.PointsMaterial({
+                color: 0x00ffff,
+                size: 0.1,
+                transparent: true,
+                opacity: 0.6
+            });
+            const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+            particles.position.y = 4;
+            portalGroup.add(particles);
+
+            portalGroup.position.set(x, 0, z);
+            portalGroup.userData = {
+                linkData: linkData,
+                ring: ring,
+                particles: particles,
+                collected: false
+            };
+
+            scene.add(portalGroup);
+            portals.push(portalGroup);
+
+            return portalGroup;
+        }
+
+        // Add default links
+        function addDefaultLinks() {
+            const defaultLinks = [
+                { title: 'GitHub', url: 'https://github.com', x: 20, z: 20 },
+                { title: 'Three.js', url: 'https://threejs.org', x: -30, z: 15 },
+                { title: 'MDN Web Docs', url: 'https://developer.mozilla.org', x: 25, z: -25 },
+                { title: 'Stack Overflow', url: 'https://stackoverflow.com', x: -20, z: -30 }
+            ];
+
+            defaultLinks.forEach(link => {
+                const linkData = {
+                    id: Date.now() + Math.random(),
+                    title: link.title,
+                    url: link.url,
+                    collected: false
+                };
+                gameState.links.push(linkData);
+                createPortal(link.x, link.z, linkData);
+            });
+
+            updateLinksList();
+        }
+
+        // Add Link Function
+        function addLink() {
+            const titleInput = document.getElementById('linkTitle');
+            const urlInput = document.getElementById('linkUrl');
+
+            const title = titleInput.value.trim();
+            const url = urlInput.value.trim();
+
+            if (!title || !url) {
+                showNotification('Please enter both title and URL!', '#ff4444');
+                return;
+            }
+
+            // Random position around the car
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 20 + Math.random() * 30;
+            const x = Math.cos(angle) * distance;
+            const z = Math.sin(angle) * distance;
+
+            const linkData = {
+                id: Date.now(),
+                title: title,
+                url: url,
+                collected: false
+            };
+
+            gameState.links.push(linkData);
+            createPortal(x, z, linkData);
+
+            titleInput.value = '';
+            urlInput.value = '';
+
+            updateLinksList();
+            showNotification(`Portal created: ${title}!`, '#00ff88');
+        }
+
+        // Update Links List UI
+        function updateLinksList() {
+            const linksList = document.getElementById('linksList');
+            linksList.innerHTML = '';
+
+            gameState.links.forEach(link => {
+                const li = document.createElement('li');
+                if (link.collected) {
+                    li.classList.add('collected');
+                }
+
+                li.innerHTML = `
+                    <div class="link-title">${link.title}</div>
+                    <div class="link-url">${link.url}</div>
+                    <div class="link-status">${link.collected ? '✓ Collected!' : '📍 Drive to portal'}</div>
+                `;
+
+                linksList.appendChild(li);
+            });
+
+            document.getElementById('totalLinks').textContent = gameState.links.length;
+        }
+
+        // Show Notification
+        function showNotification(message, color = '#00ff88') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = color;
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+
+        // Collision Detection
+        function checkPortalCollisions() {
+            const carPosition = new THREE.Vector3();
+            car.getWorldPosition(carPosition);
+
+            portals.forEach(portal => {
+                if (portal.userData.collected) return;
+
+                const portalPosition = new THREE.Vector3();
+                portal.getWorldPosition(portalPosition);
+
+                const distance = carPosition.distanceTo(portalPosition);
+
+                if (distance < 3) {
+                    // Collect the portal
+                    portal.userData.collected = true;
+                    portal.userData.linkData.collected = true;
+
+                    gameState.score += 100;
+                    gameState.linksCollected++;
+
+                    showNotification(`🎉 Collected: ${portal.userData.linkData.title}!`, '#ffd700');
+
+                    // Visual feedback
+                    portal.userData.ring.material.color.setHex(0xffd700);
+                    portal.userData.ring.material.emissive.setHex(0xffd700);
+
+                    updateLinksList();
+
+                    // Open link in new tab
+                    setTimeout(() => {
+                        window.open(portal.userData.linkData.url, '_blank');
+                    }, 500);
+                }
+            });
+        }
+
+        // Camera Follow
+        function updateCamera() {
+            const cameraOffset = new THREE.Vector3(0, 8, 12);
+            cameraOffset.applyQuaternion(car.quaternion);
+            camera.position.lerp(car.position.clone().add(cameraOffset), 0.1);
+
+            const lookAtOffset = new THREE.Vector3(0, 2, 0);
+            const lookAtPosition = car.position.clone().add(lookAtOffset);
+            camera.lookAt(lookAtPosition);
+        }
+
+        // Update HUD
+        function updateHUD() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('distance').textContent = Math.floor(gameState.distance);
+            document.getElementById('speed').textContent = Math.floor(velocity.length() * 100);
+            document.getElementById('linksCollected').textContent = gameState.linksCollected;
+        }
+
+        // Minimap
+        const minimapCanvas = document.getElementById('minimap');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        minimapCanvas.width = 200;
+        minimapCanvas.height = 200;
+
+        function updateMinimap() {
+            minimapCtx.clearRect(0, 0, 200, 200);
+
+            // Background
+            minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            minimapCtx.fillRect(0, 0, 200, 200);
+
+            const scale = 2;
+            const centerX = 100;
+            const centerY = 100;
+
+            // Draw portals
+            portals.forEach(portal => {
+                const x = centerX + (portal.position.x - car.position.x) * scale;
+                const y = centerY + (portal.position.z - car.position.z) * scale;
+
+                if (x > 0 && x < 200 && y > 0 && y < 200) {
+                    minimapCtx.fillStyle = portal.userData.collected ? '#ffd700' : '#00ff88';
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(x, y, 4, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
+            });
+
+            // Draw car
+            minimapCtx.fillStyle = '#ff0000';
+            minimapCtx.beginPath();
+            minimapCtx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+            minimapCtx.fill();
+
+            // Draw car direction
+            minimapCtx.strokeStyle = '#ff0000';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.beginPath();
+            minimapCtx.moveTo(centerX, centerY);
+            minimapCtx.lineTo(
+                centerX + Math.sin(car.rotation.y) * 10,
+                centerY + Math.cos(car.rotation.y) * 10
+            );
+            minimapCtx.stroke();
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Car controls
+            let isAccelerating = false;
+
+            if (keys['w'] || keys['arrowup']) {
+                acceleration = accelerationRate;
+                isAccelerating = true;
+            } else if (keys['s'] || keys['arrowdown']) {
+                acceleration = -accelerationRate * 0.7;
+                isAccelerating = true;
+            } else {
+                acceleration = 0;
+            }
+
+            if (keys['a'] || keys['arrowleft']) {
+                rotation = turnSpeed;
+            } else if (keys['d'] || keys['arrowright']) {
+                rotation = -turnSpeed;
+            } else {
+                rotation = 0;
+            }
+
+            if (keys[' ']) {
+                velocity.multiplyScalar(0.9);
+            }
+
+            // Update velocity
+            const forward = new THREE.Vector3(0, 0, -1);
+            forward.applyQuaternion(car.quaternion);
+            forward.multiplyScalar(acceleration);
+            velocity.add(forward);
+
+            // Apply friction
+            velocity.multiplyScalar(friction);
+
+            // Limit speed
+            if (velocity.length() > maxSpeed) {
+                velocity.normalize().multiplyScalar(maxSpeed);
+            }
+
+            // Update rotation
+            if (velocity.length() > 0.01) {
+                car.rotation.y += rotation * (velocity.length() / maxSpeed);
+            }
+
+            // Update position
+            car.position.add(velocity);
+            gameState.distance += velocity.length();
+
+            // Rotate wheels
+            wheels.forEach(wheel => {
+                wheel.rotation.x += velocity.length() * 2;
+            });
+
+            // Animate portals
+            portals.forEach(portal => {
+                portal.userData.ring.rotation.z += 0.02;
+                portal.userData.particles.rotation.y += 0.01;
+
+                // Pulse effect
+                const scale = 1 + Math.sin(Date.now() * 0.002) * 0.1;
+                portal.userData.ring.scale.set(scale, scale, scale);
+            });
+
+            // Check collisions
+            checkPortalCollisions();
+
+            // Update camera
+            updateCamera();
+
+            // Update HUD
+            updateHUD();
+
+            // Update minimap
+            updateMinimap();
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        addDefaultLinks();
+        animate();
+    </script>
+</body>
+</html>
